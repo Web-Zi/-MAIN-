@@ -7,6 +7,8 @@
   <link rel="manifest" href="manifest.json">
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- html2pdf.js for Arabic PDF rendering -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -111,27 +113,33 @@
         <button onclick="closeReportModal()" class="text-gray-500 hover:text-gray-700 font-bold text-xl">&times;</button>
       </div>
 
-      <div class="w-full overflow-x-auto">
-        <table class="w-full text-right border-collapse text-sm">
-          <thead>
-            <tr class="bg-salma text-white">
-              <th class="p-2 border border-salma-dark">القسم</th>
-              <th class="p-2 border border-salma-dark">الصنف</th>
-              <th class="p-2 border border-salma-dark">المستلم</th>
-              <th class="p-2 border border-salma-dark">الجديد</th>
-              <th class="p-2 border border-salma-dark">المسلم</th>
-              <th class="p-2 border border-salma-dark">العدد</th>
-              <th class="p-2 border border-salma-dark">الملاحظات</th>
-            </tr>
-          </thead>
-          <tbody id="modalTableBody" class="divide-y divide-gray-200 dark:divide-gray-700">
-            <!-- Details Inserted via JS -->
-          </tbody>
-        </table>
+      <!-- PDF Export Target Wrapper -->
+      <div id="modalPdfExportTarget" class="space-y-3">
+        <div class="w-full overflow-x-auto">
+          <table class="w-full text-right border-collapse text-sm">
+            <thead>
+              <tr class="bg-salma text-white">
+                <th class="p-2 border border-salma-dark">القسم</th>
+                <th class="p-2 border border-salma-dark">الصنف</th>
+                <th class="p-2 border border-salma-dark">المستلم</th>
+                <th class="p-2 border border-salma-dark">الجديد</th>
+                <th class="p-2 border border-salma-dark">المسلم</th>
+                <th class="p-2 border border-salma-dark">العدد</th>
+                <th class="p-2 border border-salma-dark">الملاحظات</th>
+              </tr>
+            </thead>
+            <tbody id="modalTableBody" class="divide-y divide-gray-200 dark:divide-gray-700">
+              <!-- Details Inserted via JS -->
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      <div class="flex justify-end gap-2 mt-6">
-        <button onclick="closeReportModal()" class="px-5 py-2 bg-gray-200 dark:bg-gray-700 rounded-xl font-bold">إغلاق</button>
+      <div class="flex justify-between items-center mt-6 pt-3 border-t">
+        <button onclick="downloadCurrentReportPDF()" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold flex items-center gap-2 text-sm shadow">
+          <span>💾</span> تحميل ملف PDF تلقائياً
+        </button>
+        <button onclick="closeReportModal()" class="px-5 py-2 bg-gray-200 dark:bg-gray-700 rounded-xl font-bold text-sm">إغلاق</button>
       </div>
     </div>
   </div>
@@ -155,6 +163,7 @@
     let currentFilter = 'ALL';
     let isSelectionMode = false;
     let selectedReportIds = new Set();
+    let activeReportData = null; // Store currently viewed report for PDF download
 
     function toggleDarkMode() {
       document.documentElement.classList.toggle('dark');
@@ -317,6 +326,8 @@
       const report = reportsList.find(r => r.id === id);
       if (!report) return;
 
+      activeReportData = report; // Store for PDF download
+
       document.getElementById('modalReportTitle').innerText = `تقرير فرع: ${report.branchName}`;
       document.getElementById('modalReportMeta').innerText = `التاريخ: ${report.date} | الوقت: ${report.time} | الهاتف: ${report.branchPhone}`;
 
@@ -345,6 +356,30 @@
 
     function closeReportModal() {
       document.getElementById('reportModal').classList.add('hidden');
+      activeReportData = null;
+    }
+
+    // Automatic PDF Download for the opened report
+    function downloadCurrentReportPDF() {
+      if (!activeReportData) return;
+
+      const element = document.getElementById('modalPdfExportTarget');
+      const fileName = `SALMA_Report_${activeReportData.branchName}_${activeReportData.date || 'date'}.pdf`;
+
+      const opt = {
+        margin:       0.3,
+        filename:     fileName,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2 },
+        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+      };
+
+      html2pdf().set(opt).from(element).save().then(() => {
+        alert('تم تحميل ملف PDF بنجاح!');
+      }).catch(err => {
+        console.error(err);
+        alert('حدث خطأ أثناء تحميل ملف PDF');
+      });
     }
 
     // Bulk Delete Selected Reports
