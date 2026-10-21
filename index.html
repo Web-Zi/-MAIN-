@@ -1,19 +1,39 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" class="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Main-SALMA | لوحة تحكم الإدارة</title>
-  <!-- Tailwind CSS -->
+  
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            salma: {
+              primary: '#3B3B98',
+              dark: '#2A2A72',
+              light: '#4E4EB2'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- html2pdf.js for 100% accurate Arabic PDF rendering -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
   
-  <!-- Firebase SDKs (v8) -->
+  <!-- html2pdf.js for accurate Arabic PDF rendering -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  
+  <!-- Google Fonts (Cairo) -->
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <!-- Firebase SDKs (v8 Compat) -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
@@ -24,7 +44,6 @@
     .pdf-render-area {
       font-family: 'Cairo', sans-serif !important;
     }
-    /* Hide scrollbar for webkit */
     .no-scrollbar::-webkit-scrollbar {
       display: none;
     }
@@ -34,18 +53,18 @@
     }
   </style>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 transition-colors duration-200 min-h-screen flex flex-col">
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 transition-colors duration-300 min-h-screen flex flex-col">
 
   <!-- Top Header Navigation -->
-  <header class="bg-gradient-to-r from-indigo-800 via-blue-800 to-indigo-900 text-white shadow-lg sticky top-0 z-30">
+  <header class="bg-indigo-900 dark:bg-gray-800 text-white shadow-lg sticky top-0 z-30 transition-colors duration-300 border-b border-indigo-800 dark:border-gray-700">
     <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
       <div class="flex items-center space-x-3 space-x-reverse">
-        <div class="w-11 h-11 bg-white text-indigo-800 rounded-xl flex items-center justify-center font-black text-xl shadow">
+        <div class="w-11 h-11 bg-white text-indigo-900 dark:bg-indigo-600 dark:text-white rounded-xl flex items-center justify-center font-black text-xl shadow">
           S
         </div>
         <div>
-          <h1 class="text-xl font-bold tracking-wide">Main-SALMA</h1>
-          <p class="text-xs text-indigo-200">لوحة تحكم الإدارة ومتابعة التقارير</p>
+          <h1 class="text-xl font-black tracking-wide">Main-SALMA</h1>
+          <p class="text-xs text-indigo-200 dark:text-gray-400">لوحة تحكم الإدارة ومتابعة تقارير الفروع</p>
         </div>
       </div>
 
@@ -56,9 +75,9 @@
           متصل بالسحابة
         </span>
 
-        <!-- Dark Mode Toggle -->
-        <button id="themeToggleBtn" onclick="toggleDarkMode()" class="p-2.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors" title="تبديل المظهر">
-          <i class="fa-solid fa-moon text-lg"></i>
+        <!-- Fully Functional Dark Mode Toggle -->
+        <button id="themeToggleBtn" onclick="toggleDarkMode()" class="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 dark:bg-gray-700 dark:hover:bg-gray-600 text-white transition-all duration-300 flex items-center justify-center w-10 h-10 shadow-inner" title="تبديل المظهر (ليلي / نهارى)">
+          <i id="themeToggleIcon" class="fa-solid fa-moon text-lg transition-transform duration-300 transform"></i>
         </button>
       </div>
     </div>
@@ -69,64 +88,64 @@
     
     <!-- Stats Banner -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-      <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex items-center justify-between">
+      <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 flex items-center justify-between transition-colors duration-300">
         <div>
           <p class="text-xs text-gray-500 dark:text-gray-400 font-bold">إجمالي التقارير المستلمة</p>
-          <h3 id="statTotal" class="text-2xl font-black mt-1">0</h3>
+          <h3 id="statTotal" class="text-3xl font-black mt-1">0</h3>
         </div>
-        <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 rounded-lg flex items-center justify-center text-xl">
+        <div class="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center text-xl">
           <i class="fa-solid fa-file-invoice"></i>
         </div>
       </div>
 
-      <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex items-center justify-between">
+      <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 flex items-center justify-between transition-colors duration-300">
         <div>
           <p class="text-xs text-gray-500 dark:text-gray-400 font-bold">تقارير قيد المراجعة</p>
-          <h3 id="statPending" class="text-2xl font-black text-amber-500 mt-1">0</h3>
+          <h3 id="statPending" class="text-3xl font-black text-amber-500 mt-1">0</h3>
         </div>
-        <div class="w-12 h-12 bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400 rounded-lg flex items-center justify-center text-xl">
+        <div class="w-12 h-12 bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400 rounded-xl flex items-center justify-center text-xl">
           <i class="fa-solid fa-clock"></i>
         </div>
       </div>
 
-      <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex items-center justify-between">
+      <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 flex items-center justify-between transition-colors duration-300">
         <div>
           <p class="text-xs text-gray-500 dark:text-gray-400 font-bold">تم تدقيقها ومراجعتها</p>
-          <h3 id="statReviewed" class="text-2xl font-black text-emerald-500 mt-1">0</h3>
+          <h3 id="statReviewed" class="text-3xl font-black text-emerald-500 mt-1">0</h3>
         </div>
-        <div class="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 rounded-lg flex items-center justify-center text-xl">
+        <div class="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 rounded-xl flex items-center justify-center text-xl">
           <i class="fa-solid fa-circle-check"></i>
         </div>
       </div>
     </div>
 
     <!-- Filter & Search Controls -->
-    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
+    <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6 flex flex-col md:flex-row items-center justify-between gap-4 transition-colors duration-300">
       <div class="relative w-full md:w-80">
-        <i class="fa-solid fa-magnifying-glass absolute right-3 top-3.5 text-gray-400"></i>
-        <input type="text" id="searchInput" oninput="renderReports()" placeholder="بحث باسم الفرع أو التاريخ..." class="w-full pr-10 pl-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+        <i class="fa-solid fa-magnifying-glass absolute right-3.5 top-3.5 text-gray-400 dark:text-gray-500"></i>
+        <input type="text" id="searchInput" oninput="renderReports()" placeholder="بحث باسم الفرع أو التاريخ..." class="w-full pr-10 pl-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
       </div>
 
       <div class="flex items-center space-x-2 space-x-reverse w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
-        <button onclick="setFilter('all')" id="filterAll" class="px-4 py-2 rounded-lg text-xs font-bold bg-indigo-600 text-white shadow">الكل</button>
-        <button onclick="setFilter('pending')" id="filterPending" class="px-4 py-2 rounded-lg text-xs font-bold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200">غير مراجعة</button>
-        <button onclick="setFilter('reviewed')" id="filterReviewed" class="px-4 py-2 rounded-lg text-xs font-bold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200">المراجعة</button>
+        <button onclick="setFilter('all')" id="filterAll" class="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow">الكل</button>
+        <button onclick="setFilter('pending')" id="filterPending" class="px-4 py-2 rounded-xl text-xs font-bold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600">غير مراجعة</button>
+        <button onclick="setFilter('reviewed')" id="filterReviewed" class="px-4 py-2 rounded-xl text-xs font-bold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600">المراجعة</button>
       </div>
     </div>
 
     <!-- Reports Cards Container -->
     <div id="reportsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
       <!-- Loading State -->
-      <div class="col-span-full py-12 text-center text-gray-400">
-        <i class="fa-solid fa-spinner fa-spin text-3xl mb-3 text-indigo-500"></i>
-        <p class="text-sm">جاري تحميل التقارير المباشرة من السحابة...</p>
+      <div class="col-span-full py-16 text-center text-gray-400">
+        <i class="fa-solid fa-spinner fa-spin text-4xl mb-3 text-indigo-500"></i>
+        <p class="text-sm font-semibold">جاري تحميل التقارير المباشرة من السحابة...</p>
       </div>
     </div>
   </main>
 
   <!-- PDF View & Print Modal -->
-  <div id="reportModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
-    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-gray-200 dark:border-gray-700">
+  <div id="reportModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-gray-200 dark:border-gray-700 transition-colors duration-300">
       
       <!-- Modal Header -->
       <div class="p-4 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
@@ -140,15 +159,15 @@
       </div>
 
       <!-- Printable Report View -->
-      <div class="p-4 sm:p-6 overflow-y-auto flex-grow bg-white dark:bg-gray-900">
-        <div id="pdfContent" class="pdf-render-area bg-white text-gray-900 p-6 rounded-lg border border-gray-200 shadow-sm max-w-3xl mx-auto">
+      <div class="p-4 sm:p-6 overflow-y-auto flex-grow bg-gray-100 dark:bg-gray-900">
+        <div id="pdfContent" class="pdf-render-area bg-white text-gray-900 p-6 rounded-xl border border-gray-200 shadow-md max-w-3xl mx-auto">
           
           <!-- Header Banner in PDF -->
           <div class="text-center pb-4 border-b-2 border-indigo-900 mb-6">
             <h1 class="text-2xl font-black text-indigo-950 tracking-wide">SALMA CAFE - سلمى كافيه</h1>
-            <p class="text-sm font-semibold text-gray-600 mt-1">تقرير جرد واستلام الأصناف اليومي</p>
+            <p class="text-sm font-bold text-gray-600 mt-1">تقرير جرد واستلام الأصناف اليومي</p>
             
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs bg-gray-100 p-3 rounded-lg mt-4 border border-gray-200">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs bg-gray-50 p-3 rounded-lg mt-4 border border-gray-200">
               <div><span class="font-bold text-gray-500">الفرع:</span> <span id="pdfBranch" class="font-extrabold text-indigo-900"></span></div>
               <div><span class="font-bold text-gray-500">التاريخ:</span> <span id="pdfDate" class="font-bold"></span></div>
               <div><span class="font-bold text-gray-500">الوقت:</span> <span id="pdfTime" class="font-bold"></span></div>
@@ -192,10 +211,10 @@
 
       <!-- Modal Footer -->
       <div class="p-4 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
-        <button onclick="closeModal()" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 text-gray-800 dark:text-gray-100 rounded-lg text-sm font-bold">إغلاق</button>
-        <button onclick="downloadPDF()" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold flex items-center space-x-2 space-x-reverse shadow">
+        <button onclick="closeModal()" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-800 dark:text-gray-100 rounded-xl text-sm font-bold">إغلاق</button>
+        <button onclick="downloadPDF()" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold flex items-center space-x-2 space-x-reverse shadow transition-all">
           <i class="fa-solid fa-download"></i>
-          <span>تحميل التقرير (PDF)</span>
+          <span>تحميل التقرير (PDF بالعربي)</span>
         </button>
       </div>
 
@@ -225,9 +244,40 @@
     let activeFilter = 'all';
     let currentReportForPdf = null;
 
-    // --- Dark Mode ---
+    // --- Dynamic Dark Mode Toggle Function ---
     function toggleDarkMode() {
-      document.documentElement.classList.toggle('dark');
+      const htmlEl = document.documentElement;
+      const icon = document.getElementById('themeToggleIcon');
+      
+      const isDark = htmlEl.classList.contains('dark');
+
+      if (isDark) {
+        htmlEl.classList.remove('dark');
+        htmlEl.classList.add('light');
+        localStorage.setItem('theme', 'light');
+        icon.className = "fa-solid fa-moon text-lg rotate-0";
+      } else {
+        htmlEl.classList.remove('light');
+        htmlEl.classList.add('dark');
+        localStorage.setItem('theme', 'dark');
+        icon.className = "fa-solid fa-sun text-lg text-amber-400 rotate-180";
+      }
+    }
+
+    // Initialize Saved Theme
+    function initTheme() {
+      const savedTheme = localStorage.getItem('theme');
+      const icon = document.getElementById('themeToggleIcon');
+      
+      if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+        document.documentElement.classList.remove('light');
+        if (icon) icon.className = "fa-solid fa-sun text-lg text-amber-400 rotate-180";
+      } else {
+        document.documentElement.classList.add('light');
+        document.documentElement.classList.remove('dark');
+        if (icon) icon.className = "fa-solid fa-moon text-lg rotate-0";
+      }
     }
 
     // --- Real-time Firestore Listener ---
@@ -242,10 +292,12 @@
           updateStats();
           renderReports();
         }, error => {
-          console.error("Firestore Error:", error);
-          document.getElementById('syncBadge').classList.replace('bg-emerald-500/20', 'bg-red-500/20');
-          document.getElementById('syncBadge').classList.replace('text-emerald-300', 'text-red-300');
-          document.getElementById('syncBadge').innerHTML = '<span class="w-2 h-2 rounded-full bg-red-400 ml-2"></span> خطأ الاتصال';
+          console.error("Firestore Listener Error:", error);
+          const syncBadge = document.getElementById('syncBadge');
+          if (syncBadge) {
+            syncBadge.className = "hidden sm:inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-red-500/20 text-red-300 border border-red-500/30";
+            syncBadge.innerHTML = '<span class="w-2 h-2 rounded-full bg-red-400 ml-2"></span> خطأ الاتصال';
+          }
         });
     }
 
@@ -266,9 +318,9 @@
       ['all', 'pending', 'reviewed'].forEach(f => {
         const btn = document.getElementById(`filter${f.charAt(0).toUpperCase() + f.slice(1)}`);
         if (f === filter) {
-          btn.className = "px-4 py-2 rounded-lg text-xs font-bold bg-indigo-600 text-white shadow";
+          btn.className = "px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow";
         } else {
-          btn.className = "px-4 py-2 rounded-lg text-xs font-bold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200";
+          btn.className = "px-4 py-2 rounded-xl text-xs font-bold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600";
         }
       });
       renderReports();
@@ -289,8 +341,8 @@
 
       if (filtered.length === 0) {
         grid.innerHTML = `
-          <div class="col-span-full py-12 text-center text-gray-400">
-            <i class="fa-solid fa-folder-open text-4xl mb-3 text-gray-300 dark:text-gray-600"></i>
+          <div class="col-span-full py-16 text-center text-gray-400 dark:text-gray-500">
+            <i class="fa-solid fa-folder-open text-5xl mb-3 text-gray-300 dark:text-gray-600"></i>
             <p class="text-sm font-semibold">لا توجد تقارير مطابقة لعرضها حالياً</p>
           </div>
         `;
@@ -298,14 +350,14 @@
       }
 
       grid.innerHTML = filtered.map(report => `
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border ${report.reviewed ? 'border-emerald-200 dark:border-emerald-900/50' : 'border-gray-200 dark:border-gray-700'} p-5 flex flex-col justify-between hover:shadow-md transition-all">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border ${report.reviewed ? 'border-emerald-200 dark:border-emerald-900/50' : 'border-gray-200 dark:border-gray-700'} p-5 flex flex-col justify-between hover:shadow-md transition-all duration-300">
           <div>
             <div class="flex justify-between items-start mb-3">
               <div>
-                <span class="text-xs font-bold px-2.5 py-1 rounded-md bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300">
+                <span class="text-xs font-black px-3 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300">
                   ${report.branchName || 'فرع غير مسمى'}
                 </span>
-                <p class="text-xs text-gray-400 mt-2">
+                <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">
                   <i class="fa-regular fa-clock ml-1"></i> ${report.date || ''} | ${report.time || ''}
                 </p>
               </div>
@@ -322,14 +374,14 @@
 
           <div class="pt-3 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between gap-2">
             <!-- Review Toggle Checkbox -->
-            <label class="inline-flex items-center cursor-pointer text-xs font-semibold text-gray-600 dark:text-gray-300">
+            <label class="inline-flex items-center cursor-pointer text-xs font-bold text-gray-600 dark:text-gray-300">
               <input type="checkbox" ${report.reviewed ? 'checked' : ''} onchange="toggleReviewStatus('${report.id}', this.checked)" class="sr-only peer">
               <div class="w-9 h-5 bg-gray-300 peer-focus:outline-none rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600 relative"></div>
               <span class="mr-2">مراجعة</span>
             </label>
 
             <!-- Open PDF Button -->
-            <button onclick="openPdfModal('${report.id}')" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold flex items-center space-x-1 space-x-reverse transition-colors shadow-sm">
+            <button onclick="openPdfModal('${report.id}')" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 space-x-reverse transition-colors shadow-sm">
               <i class="fa-solid fa-eye"></i>
               <span>فتح التقرير (PDF)</span>
             </button>
@@ -346,7 +398,6 @@
         });
       } catch (err) {
         console.error("Failed to update status:", err);
-        alert("حدث خطأ أثناء تحديث حالة المراجعة!");
       }
     }
 
@@ -388,7 +439,7 @@
       document.getElementById('reportModal').classList.add('hidden');
     }
 
-    // --- 100% Arabic Perfect PDF Export using html2pdf ---
+    // --- 100% Accurate Arabic PDF Export using html2pdf ---
     function downloadPDF() {
       const element = document.getElementById('pdfContent');
       const branchName = currentReportForPdf ? currentReportForPdf.branchName : 'سلمى';
@@ -405,8 +456,9 @@
       html2pdf().set(opt).from(element).save();
     }
 
-    // Start listening on load
+    // Start initialization on window load
     window.onload = () => {
+      initTheme();
       listenToReports();
     };
   </script>
