@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Main-SALMA - لوحة استقبال التقارير</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- jsPDF & AutoTable -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            salma: {
+              DEFAULT: '#3B3B98',
+              dark: '#2A2A72',
+              gold: '#F5CD79'
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen">
+
+  <!-- Header -->
+  <header class="bg-salma text-white p-4 shadow-lg sticky top-0 z-40">
+    <div class="max-w-xl mx-auto flex items-center justify-between">
+      <div class="flex items-center space-x-3 space-x-reverse">
+        <div class="w-10 h-10 bg-white rounded-full p-1 flex items-center justify-center">
+          <span class="text-salma font-bold text-lg">M</span>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold">Main-SALMA</h1>
+          <p class="text-xs text-salma-gold">مركز استقبال تقارير الجرد (Live Firebase)</p>
+        </div>
+      </div>
+      <button onclick="toggleDarkMode()" class="p-2 bg-salma-dark rounded-lg">🌙</button>
+    </div>
+  </header>
+
+  <!-- Reports Container -->
+  <main class="max-w-xl mx-auto p-4">
+    <h2 class="text-md font-bold mb-4 text-gray-600 dark:text-gray-300">التقارير الواردة حديثاً</h2>
+    <div id="reportsList" class="space-y-4">
+      <div class="text-center p-8 text-gray-400">جاري الاتصال بالسحابة...</div>
+    </div>
+  </main>
+
+  <script>
+    // --- Firebase Setup ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyApjPEfBwq7dRy8MPgC8eiQ8U1hhkiBZXQ",
+      authDomain: "salmacafe-b9e81.firebaseapp.com",
+      projectId: "salmacafe-b9e81",
+      storageBucket: "salmacafe-b9e81.firebasestorage.app",
+      messagingSenderId: "624228348063",
+      appId: "1:624228348063:web:4e0f3e18497eba2909b2aa",
+      measurementId: "G-FL6F3K4MZ4"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    let fetchedReports = [];
+
+    function toggleDarkMode() {
+      document.documentElement.classList.toggle('dark');
+    }
+
+    // Real-time Firestore Listener
+    db.collection("reports").orderBy("createdAt", "desc").onSnapshot(snapshot => {
+      fetchedReports = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      renderReports();
+    }, err => {
+      console.error(err);
+      document.getElementById('reportsList').innerHTML = `<div class="text-center p-8 text-red-500">حدث خطأ في الاتصال بقاعدة البيانات</div>`;
+    });
+
+    function renderReports() {
+      const container = document.getElementById('reportsList');
+      if (fetchedReports.length === 0) {
+        container.innerHTML = `<div class="text-center p-8 text-gray-400">لا توجد تقارير واردة حتى الآن</div>`;
+        return;
+      }
+
+      container.innerHTML = '';
+      fetchedReports.forEach(rep => {
+        const card = document.createElement('div');
+        card.className = `p-4 rounded-xl shadow-md border bg-white dark:bg-gray-800 ${rep.reviewed ? 'border-green-500 opacity-80' : 'border-salma'}`;
+        card.innerHTML = `
+          <div class="flex justify-between items-start mb-2">
+            <div>
+              <h3 class="font-bold text-lg text-salma dark:text-salma-gold">فرع: ${rep.branchName}</h3>
+              <p class="text-xs text-gray-500 dark:text-gray-400">رقم الهاتف: ${rep.branchPhone}</p>
+            </div>
+            <span class="text-xs bg-salma/10 text-salma dark:text-salma-gold px-2 py-1 rounded font-bold">
+              📅 ${rep.date} | ⏰ ${rep.time}
+            </span>
+          </div>
+          
+          <div class="flex items-center justify-between mt-4 border-t pt-3 border-gray-100 dark:border-gray-700">
+            <label class="flex items-center space-x-2 space-x-reverse cursor-pointer">
+              <input type="checkbox" ${rep.reviewed ? 'checked' : ''} onchange="toggleReview('${rep.id}', ${rep.reviewed})" class="w-5 h-5 text-salma rounded">
+              <span class="text-sm font-semibold">تمت المراجعة والتدقيق</span>
+            </label>
+
+            <button onclick="downloadReportPDF('${rep.id}')" class="bg-salma text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1 hover:bg-salma-dark">
+              <span>📄</span> فتح التقرير (PDF)
+            </button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    async function toggleReview(docId, currentStatus) {
+      try {
+        await db.collection("reports").doc(docId).update({ reviewed: !currentStatus });
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function downloadReportPDF(docId) {
+      const rep = fetchedReports.find(r => r.id === docId);
+      if (!rep) return;
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+
+      doc.setFontSize(16);
+      doc.text(`SALMA CAFE - Inventory Report`, 105, 15, { align: 'center' });
+      doc.setFontSize(10);
+      doc.text(`Branch: ${rep.branchName} | Date: ${rep.date} | Time: ${rep.time} | Phone: ${rep.branchPhone}`, 105, 22, { align: 'center' });
+
+      let rows = (rep.tableData || []).map(row => [row.note, row.count, row.musallam, row.jadid, row.mustalam, row.item]);
+
+      doc.autoTable({
+        head: [['ملاحظات', 'العدد', 'المسلم', 'جديد', 'المستلم', 'الصنف']],
+        body: rows,
+        startY: 30,
+        styles: { halign: 'center' }
+      });
+
+      doc.save(rep.fileName || `SALMA_Report_${rep.branchName}.pdf`);
+    }
+  </script>
+</body>
+</html>
