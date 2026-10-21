@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SALMA Admin Portal</title>
   <link rel="manifest" href="manifest.json">
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -27,7 +28,7 @@
     }
   </script>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen">
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen pb-12">
 
   <!-- Admin Header -->
   <header class="bg-salma text-white p-4 shadow-lg sticky top-0 z-40">
@@ -46,9 +47,9 @@
   </header>
 
   <!-- Main Portal Layout -->
-  <main class="max-w-6xl mx-auto p-4 space-y-6">
+  <main class="max-w-6xl mx-auto p-4 space-y-4">
 
-    <!-- Reports Section Header & Bulk Delete Controls -->
+    <!-- Reports Section Header Controls -->
     <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div>
         <h2 class="text-lg font-bold text-salma dark:text-salma-gold">تقارير الجرد المستلمة من الفروع</h2>
@@ -66,7 +67,20 @@
       </div>
     </div>
 
-    <!-- Selection Bar (Only visible when selection mode is active) -->
+    <!-- Filter Tabs (Shows checked vs unchecked reports) -->
+    <div class="bg-white dark:bg-gray-800 p-2 rounded-xl shadow-sm flex gap-2">
+      <button onclick="setFilter('ALL')" id="filterBtnALL" class="flex-1 py-2 text-xs font-bold rounded-lg transition bg-salma text-white shadow">
+        عرض الكل <span id="countALL" class="text-[10px] bg-white/20 px-1.5 py-0.5 rounded-full mr-1">(0)</span>
+      </button>
+      <button onclick="setFilter('NEW')" id="filterBtnNEW" class="flex-1 py-2 text-xs font-bold rounded-lg transition text-amber-600 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100">
+        جديد ⏳ (غير مراجع) <span id="countNEW" class="text-[10px] bg-amber-200 dark:bg-amber-900 px-1.5 py-0.5 rounded-full mr-1">(0)</span>
+      </button>
+      <button onclick="setFilter('REVIEWED')" id="filterBtnREVIEWED" class="flex-1 py-2 text-xs font-bold rounded-lg transition text-green-600 bg-green-50 dark:bg-green-950/40 hover:bg-green-100">
+        مراجَع ✓ <span id="countREVIEWED" class="text-[10px] bg-green-200 dark:bg-green-900 px-1.5 py-0.5 rounded-full mr-1">(0)</span>
+      </button>
+    </div>
+
+    <!-- Selection Bar (Only visible when multi-selection mode is active) -->
     <div id="selectionActionBar" class="hidden bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 p-3 rounded-xl flex items-center justify-between">
       <div class="flex items-center gap-3">
         <label class="flex items-center gap-2 text-sm font-bold cursor-pointer">
@@ -138,6 +152,7 @@
     const db = firebase.firestore();
 
     let reportsList = [];
+    let currentFilter = 'ALL';
     let isSelectionMode = false;
     let selectedReportIds = new Set();
 
@@ -147,18 +162,43 @@
       document.getElementById('darkModeBtn').innerText = isDark ? '☀️' : '🌙';
     }
 
-    // Fetch reports real-time or on manual reload
+    // Fetch reports in real-time
     function loadReports() {
       db.collection("reports").orderBy("createdAt", "desc").onSnapshot(snapshot => {
         reportsList = [];
         snapshot.forEach(doc => {
           reportsList.push({ id: doc.id, ...doc.data() });
         });
+        updateFilterCounts();
         renderReportsGrid();
       }, err => {
         console.error(err);
         alert('حدث خطأ في استدعاء التقارير من قاعدة البيانات');
       });
+    }
+
+    function setFilter(filterType) {
+      currentFilter = filterType;
+      
+      const allBtn = document.getElementById('filterBtnALL');
+      const newBtn = document.getElementById('filterBtnNEW');
+      const revBtn = document.getElementById('filterBtnREVIEWED');
+
+      allBtn.className = filterType === 'ALL' ? 'flex-1 py-2 text-xs font-bold rounded-lg transition bg-salma text-white shadow' : 'flex-1 py-2 text-xs font-bold rounded-lg transition text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700';
+      newBtn.className = filterType === 'NEW' ? 'flex-1 py-2 text-xs font-bold rounded-lg transition bg-amber-500 text-white shadow' : 'flex-1 py-2 text-xs font-bold rounded-lg transition text-amber-600 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100';
+      revBtn.className = filterType === 'REVIEWED' ? 'flex-1 py-2 text-xs font-bold rounded-lg transition bg-green-600 text-white shadow' : 'flex-1 py-2 text-xs font-bold rounded-lg transition text-green-600 bg-green-50 dark:bg-green-950/40 hover:bg-green-100';
+
+      renderReportsGrid();
+    }
+
+    function updateFilterCounts() {
+      const total = reportsList.length;
+      const newCount = reportsList.filter(r => !r.reviewed).length;
+      const reviewedCount = reportsList.filter(r => r.reviewed).length;
+
+      document.getElementById('countALL').innerText = `(${total})`;
+      document.getElementById('countNEW').innerText = `(${newCount})`;
+      document.getElementById('countREVIEWED').innerText = `(${reviewedCount})`;
     }
 
     // Toggle multi-select delete mode
@@ -192,30 +232,43 @@
       updateSelectedCount();
     }
 
+    function getFilteredReports() {
+      if (currentFilter === 'NEW') {
+        return reportsList.filter(r => !r.reviewed);
+      } else if (currentFilter === 'REVIEWED') {
+        return reportsList.filter(r => r.reviewed);
+      }
+      return reportsList;
+    }
+
     function toggleSelectAll(checked) {
       selectedReportIds.clear();
       if (checked) {
-        reportsList.forEach(r => selectedReportIds.add(r.id));
+        const visible = getFilteredReports();
+        visible.forEach(r => selectedReportIds.add(r.id));
       }
       updateSelectedCount();
       renderReportsGrid();
     }
 
     function updateSelectedCount() {
+      const visible = getFilteredReports();
       document.getElementById('selectedCountBadge').innerText = `${selectedReportIds.size} محدد`;
-      document.getElementById('selectAllCheckbox').checked = reportsList.length > 0 && selectedReportIds.size === reportsList.length;
+      document.getElementById('selectAllCheckbox').checked = visible.length > 0 && selectedReportIds.size === visible.length;
     }
 
     function renderReportsGrid() {
       const grid = document.getElementById('reportsGrid');
       grid.innerHTML = '';
 
-      if (reportsList.length === 0) {
-        grid.innerHTML = `<div class="col-span-full text-center py-12 text-gray-400 font-bold">لا توجد تقارير متاحة حالياً</div>`;
+      const filtered = getFilteredReports();
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `<div class="col-span-full text-center py-12 text-gray-400 font-bold">لا توجد تقارير في هذا القسم</div>`;
         return;
       }
 
-      reportsList.forEach(report => {
+      filtered.forEach(report => {
         const isChecked = selectedReportIds.has(report.id);
         const card = document.createElement('div');
         card.className = `bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-md border transition relative ${report.reviewed ? 'border-green-500/30' : 'border-amber-500/50'}`;
