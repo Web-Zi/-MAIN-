@@ -1,6 +1,6 @@
 {
-  "name": "SALMA Branch Inventory",
-  "short_name": "SALMA Branch",
+  "name": "SALMA Admin Portal",
+  "short_name": "SALMA Admin",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#3B3B98",
