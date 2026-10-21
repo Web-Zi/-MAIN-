@@ -1,12 +1,15 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl" class="light">
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Main-SALMA | لوحة تحكم الإدارة</title>
+  <title>SALMA Admin Portal</title>
   <link rel="manifest" href="manifest.json">
-  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -14,216 +17,113 @@
         extend: {
           colors: {
             salma: {
-              primary: '#3B3B98',
+              DEFAULT: '#3B3B98',
               dark: '#2A2A72',
-              light: '#4E4EB2'
+              gold: '#F5CD79'
             }
           }
         }
       }
     }
   </script>
-
-  <!-- Font Awesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  
-  <!-- html2pdf.js for accurate Arabic PDF rendering -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-  
-  <!-- Google Fonts (Cairo) -->
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-  
-  <!-- Firebase SDKs (v8 Compat) -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
-  <style>
-    body {
-      font-family: 'Cairo', sans-serif;
-    }
-    .pdf-render-area {
-      font-family: 'Cairo', sans-serif !important;
-    }
-    .no-scrollbar::-webkit-scrollbar {
-      display: none;
-    }
-    .no-scrollbar {
-      -ms-overflow-style: none;
-      scrollbar-width: none;
-    }
-  </style>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 transition-colors duration-300 min-h-screen flex flex-col">
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen">
 
-  <!-- Top Header Navigation -->
-  <header class="bg-indigo-900 dark:bg-gray-800 text-white shadow-lg sticky top-0 z-30 transition-colors duration-300 border-b border-indigo-800 dark:border-gray-700">
-    <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+  <!-- Admin Header -->
+  <header class="bg-salma text-white p-4 shadow-lg sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto flex items-center justify-between">
       <div class="flex items-center space-x-3 space-x-reverse">
-       <div class="w-11 h-11 bg-white rounded-xl flex items-center justify-center shadow overflow-hidden p-0.5">
-  <img src="salma logo.png" alt="SALMA Logo" class="w-full h-full object-cover rounded-lg">
-</div>
+        <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-inner overflow-hidden p-0.5">
+          <img src="salma logo.png" alt="SALMA Logo" class="w-full h-full object-cover rounded-lg">
+        </div>
         <div>
-          <h1 class="text-xl font-black tracking-wide">Main-SALMA</h1>
-          <p class="text-xs text-indigo-200 dark:text-gray-400">لوحة تحكم الإدارة ومتابعة تقارير الفروع</p>
+          <h1 class="text-xl font-bold tracking-wide">SALMA CAFE - Admin Portal</h1>
+          <p class="text-xs text-salma-gold">لوحة تحكم الإدارة ومتابعة تقارير الفروع</p>
         </div>
       </div>
-
-      <div class="flex items-center space-x-3 space-x-reverse">
-        <!-- Live Connection Badge -->
-        <span id="syncBadge" class="hidden sm:inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse ml-2"></span>
-          متصل بالسحابة
-        </span>
-
-        <!-- Fully Functional Dark Mode Toggle -->
-        <button id="themeToggleBtn" onclick="toggleDarkMode()" class="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 dark:bg-gray-700 dark:hover:bg-gray-600 text-white transition-all duration-300 flex items-center justify-center w-10 h-10 shadow-inner" title="تبديل المظهر (ليلي / نهارى)">
-          <i id="themeToggleIcon" class="fa-solid fa-moon text-lg transition-transform duration-300 transform"></i>
-        </button>
-      </div>
+      <button onclick="toggleDarkMode()" id="darkModeBtn" class="p-2 bg-salma-dark rounded-lg">🌙</button>
     </div>
   </header>
 
-  <!-- Main Content Area -->
-  <main class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full">
-    
-    <!-- Stats Banner -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-      <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 flex items-center justify-between transition-colors duration-300">
-        <div>
-          <p class="text-xs text-gray-500 dark:text-gray-400 font-bold">إجمالي التقارير المستلمة</p>
-          <h3 id="statTotal" class="text-3xl font-black mt-1">0</h3>
-        </div>
-        <div class="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center text-xl">
-          <i class="fa-solid fa-file-invoice"></i>
-        </div>
+  <!-- Main Portal Layout -->
+  <main class="max-w-6xl mx-auto p-4 space-y-6">
+
+    <!-- Reports Section Header & Bulk Delete Controls -->
+    <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div>
+        <h2 class="text-lg font-bold text-salma dark:text-salma-gold">تقارير الجرد المستلمة من الفروع</h2>
+        <p class="text-xs text-gray-500 dark:text-gray-400">عرض جميع التقارير المرسلة وتصفيتها أو حذفها</p>
       </div>
 
-      <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 flex items-center justify-between transition-colors duration-300">
-        <div>
-          <p class="text-xs text-gray-500 dark:text-gray-400 font-bold">تقارير قيد المراجعة</p>
-          <h3 id="statPending" class="text-3xl font-black text-amber-500 mt-1">0</h3>
-        </div>
-        <div class="w-12 h-12 bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400 rounded-xl flex items-center justify-center text-xl">
-          <i class="fa-solid fa-clock"></i>
-        </div>
-      </div>
-
-      <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 flex items-center justify-between transition-colors duration-300">
-        <div>
-          <p class="text-xs text-gray-500 dark:text-gray-400 font-bold">تم تدقيقها ومراجعتها</p>
-          <h3 id="statReviewed" class="text-3xl font-black text-emerald-500 mt-1">0</h3>
-        </div>
-        <div class="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 rounded-xl flex items-center justify-center text-xl">
-          <i class="fa-solid fa-circle-check"></i>
-        </div>
+      <div class="flex items-center gap-2 flex-wrap">
+        <!-- Toggle Multi-Select Mode Button -->
+        <button id="toggleSelectionBtn" onclick="toggleSelectionMode()" class="px-4 py-2 border border-salma text-salma dark:text-salma-gold rounded-xl text-sm font-bold hover:bg-salma/10 transition">
+          ☑️ تحديد وإزالة التقارير
+        </button>
+        <button onclick="loadReports()" class="px-4 py-2 bg-salma text-white rounded-xl text-sm font-bold shadow hover:bg-salma-dark transition flex items-center gap-1">
+          🔄 تحديث القائمة
+        </button>
       </div>
     </div>
 
-    <!-- Filter & Search Controls -->
-    <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6 flex flex-col md:flex-row items-center justify-between gap-4 transition-colors duration-300">
-      <div class="relative w-full md:w-80">
-        <i class="fa-solid fa-magnifying-glass absolute right-3.5 top-3.5 text-gray-400 dark:text-gray-500"></i>
-        <input type="text" id="searchInput" oninput="renderReports()" placeholder="بحث باسم الفرع أو التاريخ..." class="w-full pr-10 pl-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+    <!-- Selection Bar (Only visible when selection mode is active) -->
+    <div id="selectionActionBar" class="hidden bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 p-3 rounded-xl flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <label class="flex items-center gap-2 text-sm font-bold cursor-pointer">
+          <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this.checked)" class="w-4 h-4 accent-red-600 rounded">
+          تحديد الكل
+        </label>
+        <span id="selectedCountBadge" class="text-xs bg-red-600 text-white font-bold px-2 py-0.5 rounded-full">0 محدد</span>
       </div>
-
-      <div class="flex items-center space-x-2 space-x-reverse w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
-        <button onclick="setFilter('all')" id="filterAll" class="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow">الكل</button>
-        <button onclick="setFilter('pending')" id="filterPending" class="px-4 py-2 rounded-xl text-xs font-bold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600">غير مراجعة</button>
-        <button onclick="setFilter('reviewed')" id="filterReviewed" class="px-4 py-2 rounded-xl text-xs font-bold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600">المراجعة</button>
-      </div>
+      <button onclick="deleteSelectedReports()" class="bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-1.5 rounded-lg text-sm shadow transition">
+        🗑️ حذف المحدد
+      </button>
     </div>
 
-    <!-- Reports Cards Container -->
-    <div id="reportsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-      <!-- Loading State -->
-      <div class="col-span-full py-16 text-center text-gray-400">
-        <i class="fa-solid fa-spinner fa-spin text-4xl mb-3 text-indigo-500"></i>
-        <p class="text-sm font-semibold">جاري تحميل التقارير المباشرة من السحابة...</p>
-      </div>
+    <!-- Reports Cards Grid -->
+    <div id="reportsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <!-- Dynamic Report Cards -->
     </div>
   </main>
 
-  <!-- PDF View & Print Modal -->
-  <div id="reportModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
-    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-gray-200 dark:border-gray-700 transition-colors duration-300">
-      
-      <!-- Modal Header -->
-      <div class="p-4 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-        <div class="flex items-center space-x-2 space-x-reverse">
-          <i class="fa-solid fa-file-pdf text-red-500 text-xl"></i>
-          <h3 class="font-bold text-lg text-gray-800 dark:text-gray-100" id="modalTitle">عرض التقرير التفصيلي</h3>
+  <!-- Report Details Modal -->
+  <div id="reportModal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+      <div class="flex justify-between items-center border-b pb-3 mb-4">
+        <div>
+          <h3 id="modalReportTitle" class="font-bold text-lg text-salma dark:text-salma-gold">تفاصيل التقرير</h3>
+          <p id="modalReportMeta" class="text-xs text-gray-500"></p>
         </div>
-        <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-2 text-lg">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
+        <button onclick="closeReportModal()" class="text-gray-500 hover:text-gray-700 font-bold text-xl">&times;</button>
       </div>
 
-      <!-- Printable Report View -->
-      <div class="p-4 sm:p-6 overflow-y-auto flex-grow bg-gray-100 dark:bg-gray-900">
-        <div id="pdfContent" class="pdf-render-area bg-white text-gray-900 p-6 rounded-xl border border-gray-200 shadow-md max-w-3xl mx-auto">
-          
-          <!-- Header Banner in PDF -->
-          <div class="text-center pb-4 border-b-2 border-indigo-900 mb-6">
-            <h1 class="text-2xl font-black text-indigo-950 tracking-wide">SALMA CAFE - سلمى كافيه</h1>
-            <p class="text-sm font-bold text-gray-600 mt-1">تقرير جرد واستلام الأصناف اليومي</p>
-            
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs bg-gray-50 p-3 rounded-lg mt-4 border border-gray-200">
-              <div><span class="font-bold text-gray-500">الفرع:</span> <span id="pdfBranch" class="font-extrabold text-indigo-900"></span></div>
-              <div><span class="font-bold text-gray-500">التاريخ:</span> <span id="pdfDate" class="font-bold"></span></div>
-              <div><span class="font-bold text-gray-500">الوقت:</span> <span id="pdfTime" class="font-bold"></span></div>
-              <div><span class="font-bold text-gray-500">الهاتف:</span> <span id="pdfPhone" class="font-bold"></span></div>
-            </div>
-          </div>
-
-          <!-- Dynamic Table -->
-          <div class="overflow-x-auto">
-            <table class="w-full text-right text-xs border-collapse">
-              <thead>
-                <tr class="bg-indigo-900 text-white font-bold">
-                  <th class="p-2.5 border border-indigo-950 text-center">الصنف</th>
-                  <th class="p-2.5 border border-indigo-950 text-center">المستلم</th>
-                  <th class="p-2.5 border border-indigo-950 text-center">جديد</th>
-                  <th class="p-2.5 border border-indigo-950 text-center">المسلم</th>
-                  <th class="p-2.5 border border-indigo-950 text-center">العدد النهائي</th>
-                  <th class="p-2.5 border border-indigo-950 text-center">ملاحظات</th>
-                </tr>
-              </thead>
-              <tbody id="pdfTableBody" class="divide-y divide-gray-200">
-                <!-- Rows injected dynamically -->
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Signature Footer -->
-          <div class="mt-8 pt-4 border-t border-gray-300 grid grid-cols-2 text-center text-xs text-gray-600">
-            <div>
-              <p class="font-bold mb-6">توقيع مسؤول الفرع</p>
-              <p class="border-b border-dashed border-gray-400 w-32 mx-auto"></p>
-            </div>
-            <div>
-              <p class="font-bold mb-6">اعتماد الإدارة العامة</p>
-              <p class="border-b border-dashed border-gray-400 w-32 mx-auto"></p>
-            </div>
-          </div>
-
-        </div>
+      <div class="w-full overflow-x-auto">
+        <table class="w-full text-right border-collapse text-sm">
+          <thead>
+            <tr class="bg-salma text-white">
+              <th class="p-2 border border-salma-dark">القسم</th>
+              <th class="p-2 border border-salma-dark">الصنف</th>
+              <th class="p-2 border border-salma-dark">المستلم</th>
+              <th class="p-2 border border-salma-dark">الجديد</th>
+              <th class="p-2 border border-salma-dark">المسلم</th>
+              <th class="p-2 border border-salma-dark">العدد</th>
+              <th class="p-2 border border-salma-dark">الملاحظات</th>
+            </tr>
+          </thead>
+          <tbody id="modalTableBody" class="divide-y divide-gray-200 dark:divide-gray-700">
+            <!-- Details Inserted via JS -->
+          </tbody>
+        </table>
       </div>
 
-      <!-- Modal Footer -->
-      <div class="p-4 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
-        <button onclick="closeModal()" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-800 dark:text-gray-100 rounded-xl text-sm font-bold">إغلاق</button>
-        <button onclick="downloadPDF()" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold flex items-center space-x-2 space-x-reverse shadow transition-all">
-          <i class="fa-solid fa-download"></i>
-          <span>تحميل التقرير (PDF بالعربي)</span>
-        </button>
+      <div class="flex justify-end gap-2 mt-6">
+        <button onclick="closeReportModal()" class="px-5 py-2 bg-gray-200 dark:bg-gray-700 rounded-xl font-bold">إغلاق</button>
       </div>
-
     </div>
   </div>
 
-  <!-- JavaScript Code -->
   <script>
-    // --- Firebase Configuration ---
+    // --- Firebase Setup ---
     const firebaseConfig = {
       apiKey: "AIzaSyApjPEfBwq7dRy8MPgC8eiQ8U1hhkiBZXQ",
       authDomain: "salmacafe-b9e81.firebaseapp.com",
@@ -234,199 +134,154 @@
       measurementId: "G-FL6F3K4MZ4"
     };
 
-    // Initialize Firebase
-    if (!firebase.apps.length) {
-      firebase.initializeApp(firebaseConfig);
-    }
+    firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    let allReports = [];
-    let activeFilter = 'all';
-    let currentReportForPdf = null;
+    let reportsList = [];
+    let isSelectionMode = false;
+    let selectedReportIds = new Set();
 
-    // --- Dynamic Dark Mode Toggle Function ---
     function toggleDarkMode() {
-      const htmlEl = document.documentElement;
-      const icon = document.getElementById('themeToggleIcon');
-      
-      const isDark = htmlEl.classList.contains('dark');
-
-      if (isDark) {
-        htmlEl.classList.remove('dark');
-        htmlEl.classList.add('light');
-        localStorage.setItem('theme', 'light');
-        icon.className = "fa-solid fa-moon text-lg rotate-0";
-      } else {
-        htmlEl.classList.remove('light');
-        htmlEl.classList.add('dark');
-        localStorage.setItem('theme', 'dark');
-        icon.className = "fa-solid fa-sun text-lg text-amber-400 rotate-180";
-      }
+      document.documentElement.classList.toggle('dark');
+      const isDark = document.documentElement.classList.contains('dark');
+      document.getElementById('darkModeBtn').innerText = isDark ? '☀️' : '🌙';
     }
 
-    // Initialize Saved Theme
-    function initTheme() {
-      const savedTheme = localStorage.getItem('theme');
-      const icon = document.getElementById('themeToggleIcon');
-      
-      if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        document.documentElement.classList.add('dark');
-        document.documentElement.classList.remove('light');
-        if (icon) icon.className = "fa-solid fa-sun text-lg text-amber-400 rotate-180";
-      } else {
-        document.documentElement.classList.add('light');
-        document.documentElement.classList.remove('dark');
-        if (icon) icon.className = "fa-solid fa-moon text-lg rotate-0";
-      }
-    }
-
-    // --- Real-time Firestore Listener ---
-    function listenToReports() {
-      db.collection("reports")
-        .orderBy("createdAt", "desc")
-        .onSnapshot(snapshot => {
-          allReports = [];
-          snapshot.forEach(doc => {
-            allReports.push({ id: doc.id, ...doc.data() });
-          });
-          updateStats();
-          renderReports();
-        }, error => {
-          console.error("Firestore Listener Error:", error);
-          const syncBadge = document.getElementById('syncBadge');
-          if (syncBadge) {
-            syncBadge.className = "hidden sm:inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-red-500/20 text-red-300 border border-red-500/30";
-            syncBadge.innerHTML = '<span class="w-2 h-2 rounded-full bg-red-400 ml-2"></span> خطأ الاتصال';
-          }
+    // Fetch reports real-time or on manual reload
+    function loadReports() {
+      db.collection("reports").orderBy("createdAt", "desc").onSnapshot(snapshot => {
+        reportsList = [];
+        snapshot.forEach(doc => {
+          reportsList.push({ id: doc.id, ...doc.data() });
         });
-    }
-
-    // --- Update Dashboard Stats ---
-    function updateStats() {
-      const total = allReports.length;
-      const reviewed = allReports.filter(r => r.reviewed).length;
-      const pending = total - reviewed;
-
-      document.getElementById('statTotal').innerText = total;
-      document.getElementById('statPending').innerText = pending;
-      document.getElementById('statReviewed').innerText = reviewed;
-    }
-
-    // --- Filter Controls ---
-    function setFilter(filter) {
-      activeFilter = filter;
-      ['all', 'pending', 'reviewed'].forEach(f => {
-        const btn = document.getElementById(`filter${f.charAt(0).toUpperCase() + f.slice(1)}`);
-        if (f === filter) {
-          btn.className = "px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow";
-        } else {
-          btn.className = "px-4 py-2 rounded-xl text-xs font-bold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600";
-        }
+        renderReportsGrid();
+      }, err => {
+        console.error(err);
+        alert('حدث خطأ في استدعاء التقارير من قاعدة البيانات');
       });
-      renderReports();
     }
 
-    // --- Render Reports Grid ---
-    function renderReports() {
+    // Toggle multi-select delete mode
+    function toggleSelectionMode() {
+      isSelectionMode = !isSelectionMode;
+      selectedReportIds.clear();
+      
+      const btn = document.getElementById('toggleSelectionBtn');
+      const bar = document.getElementById('selectionActionBar');
+      
+      if (isSelectionMode) {
+        btn.innerText = '❌ إلغاء التحديد';
+        btn.className = 'px-4 py-2 bg-red-100 text-red-600 border border-red-300 rounded-xl text-sm font-bold transition';
+        bar.classList.remove('hidden');
+      } else {
+        btn.innerText = '☑️ تحديد وإزالة التقارير';
+        btn.className = 'px-4 py-2 border border-salma text-salma dark:text-salma-gold rounded-xl text-sm font-bold hover:bg-salma/10 transition';
+        bar.classList.add('hidden');
+      }
+      
+      updateSelectedCount();
+      renderReportsGrid();
+    }
+
+    function toggleSelectReport(id, checked) {
+      if (checked) {
+        selectedReportIds.add(id);
+      } else {
+        selectedReportIds.delete(id);
+      }
+      updateSelectedCount();
+    }
+
+    function toggleSelectAll(checked) {
+      selectedReportIds.clear();
+      if (checked) {
+        reportsList.forEach(r => selectedReportIds.add(r.id));
+      }
+      updateSelectedCount();
+      renderReportsGrid();
+    }
+
+    function updateSelectedCount() {
+      document.getElementById('selectedCountBadge').innerText = `${selectedReportIds.size} محدد`;
+      document.getElementById('selectAllCheckbox').checked = reportsList.length > 0 && selectedReportIds.size === reportsList.length;
+    }
+
+    function renderReportsGrid() {
       const grid = document.getElementById('reportsGrid');
-      const searchVal = document.getElementById('searchInput').value.toLowerCase();
+      grid.innerHTML = '';
 
-      let filtered = allReports.filter(report => {
-        const matchesSearch = (report.branchName || '').toLowerCase().includes(searchVal) || 
-                              (report.date || '').includes(searchVal);
-        if (activeFilter === 'reviewed') return matchesSearch && report.reviewed;
-        if (activeFilter === 'pending') return matchesSearch && !report.reviewed;
-        return matchesSearch;
-      });
-
-      if (filtered.length === 0) {
-        grid.innerHTML = `
-          <div class="col-span-full py-16 text-center text-gray-400 dark:text-gray-500">
-            <i class="fa-solid fa-folder-open text-5xl mb-3 text-gray-300 dark:text-gray-600"></i>
-            <p class="text-sm font-semibold">لا توجد تقارير مطابقة لعرضها حالياً</p>
-          </div>
-        `;
+      if (reportsList.length === 0) {
+        grid.innerHTML = `<div class="col-span-full text-center py-12 text-gray-400 font-bold">لا توجد تقارير متاحة حالياً</div>`;
         return;
       }
 
-      grid.innerHTML = filtered.map(report => `
-        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border ${report.reviewed ? 'border-emerald-200 dark:border-emerald-900/50' : 'border-gray-200 dark:border-gray-700'} p-5 flex flex-col justify-between hover:shadow-md transition-all duration-300">
-          <div>
-            <div class="flex justify-between items-start mb-3">
+      reportsList.forEach(report => {
+        const isChecked = selectedReportIds.has(report.id);
+        const card = document.createElement('div');
+        card.className = `bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-md border transition relative ${report.reviewed ? 'border-green-500/30' : 'border-amber-500/50'}`;
+
+        card.innerHTML = `
+          <div class="flex justify-between items-start mb-3">
+            <div class="flex items-center gap-3">
+              ${isSelectionMode ? `
+                <input type="checkbox" onchange="toggleSelectReport('${report.id}', this.checked)" ${isChecked ? 'checked' : ''} class="w-5 h-5 accent-red-600 rounded cursor-pointer">
+              ` : ''}
               <div>
-                <span class="text-xs font-black px-3 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300">
-                  ${report.branchName || 'فرع غير مسمى'}
-                </span>
-                <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">
-                  <i class="fa-regular fa-clock ml-1"></i> ${report.date || ''} | ${report.time || ''}
-                </p>
+                <h3 class="font-bold text-gray-900 dark:text-white">${report.branchName || 'فرع غير مسمى'}</h3>
+                <p class="text-xs text-gray-400">📅 ${report.date || '-'} | 🕒 ${report.time || '-'}</p>
               </div>
-
-              <span class="text-xs px-2.5 py-1 rounded-full font-bold ${report.reviewed ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'}">
-                ${report.reviewed ? '<i class="fa-solid fa-check ml-1"></i> تم التدقيق' : 'قيد المراجعة'}
-              </span>
             </div>
-
-            <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
-              <i class="fa-solid fa-phone ml-1"></i> هاتف الفرع: ${report.branchPhone || 'غير متوفر'}
-            </p>
+            <span class="text-xs px-2.5 py-1 rounded-full font-bold ${report.reviewed ? 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'}">
+              ${report.reviewed ? 'مراجَع ✓' : 'جديد ⏳'}
+            </span>
           </div>
 
-          <div class="pt-3 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between gap-2">
-            <!-- Review Toggle Checkbox -->
-            <label class="inline-flex items-center cursor-pointer text-xs font-bold text-gray-600 dark:text-gray-300">
-              <input type="checkbox" ${report.reviewed ? 'checked' : ''} onchange="toggleReviewStatus('${report.id}', this.checked)" class="sr-only peer">
-              <div class="w-9 h-5 bg-gray-300 peer-focus:outline-none rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600 relative"></div>
-              <span class="mr-2">مراجعة</span>
-            </label>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">📞 هاتف الفرع: ${report.branchPhone || '-'}</p>
 
-            <!-- Open PDF Button -->
-            <button onclick="openPdfModal('${report.id}')" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 space-x-reverse transition-colors shadow-sm">
-              <i class="fa-solid fa-eye"></i>
-              <span>فتح التقرير (PDF)</span>
+          <div class="flex gap-2">
+            <button onclick="viewReportDetails('${report.id}')" class="flex-1 bg-salma text-white py-2 rounded-xl text-xs font-bold hover:bg-salma-dark transition">
+              🔍 عرض التقرير
+            </button>
+            <button onclick="toggleReviewedStatus('${report.id}', ${!report.reviewed})" class="px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl text-xs font-bold hover:bg-gray-200 transition">
+              ${report.reviewed ? 'إلغاء المراجعة' : 'تحديد كمراجع'}
             </button>
           </div>
-        </div>
-      `).join('');
+        `;
+        grid.appendChild(card);
+      });
     }
 
-    // --- Live Firestore Status Update ---
-    async function toggleReviewStatus(docId, isReviewed) {
+    async function toggleReviewedStatus(id, newStatus) {
       try {
-        await db.collection("reports").doc(docId).update({
-          reviewed: isReviewed
-        });
+        await db.collection("reports").doc(id).update({ reviewed: newStatus });
       } catch (err) {
-        console.error("Failed to update status:", err);
+        console.error(err);
+        alert('تعذر تحديث حالة التقرير');
       }
     }
 
-    // --- Modal & PDF View Logic ---
-    function openPdfModal(reportId) {
-      const report = allReports.find(r => r.id === reportId);
+    function viewReportDetails(id) {
+      const report = reportsList.find(r => r.id === id);
       if (!report) return;
 
-      currentReportForPdf = report;
+      document.getElementById('modalReportTitle').innerText = `تقرير فرع: ${report.branchName}`;
+      document.getElementById('modalReportMeta').innerText = `التاريخ: ${report.date} | الوقت: ${report.time} | الهاتف: ${report.branchPhone}`;
 
-      document.getElementById('pdfBranch').innerText = report.branchName || '-';
-      document.getElementById('pdfDate').innerText = report.date || '-';
-      document.getElementById('pdfTime').innerText = report.time || '-';
-      document.getElementById('pdfPhone').innerText = report.branchPhone || '-';
-
-      const tbody = document.getElementById('pdfTableBody');
+      const tbody = document.getElementById('modalTableBody');
       tbody.innerHTML = '';
 
       if (report.tableData && Array.isArray(report.tableData)) {
-        report.tableData.forEach((row, idx) => {
+        report.tableData.forEach(row => {
           const tr = document.createElement('tr');
-          tr.className = idx % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+          tr.className = "hover:bg-gray-50 dark:hover:bg-gray-750";
           tr.innerHTML = `
-            <td class="p-2 border border-gray-300 text-center font-extrabold text-indigo-950">${row.item || '-'}</td>
-            <td class="p-2 border border-gray-300 text-center">${row.mustalam || '-'}</td>
-            <td class="p-2 border border-gray-300 text-center">${row.jadid || '-'}</td>
-            <td class="p-2 border border-gray-300 text-center">${row.musallam || '-'}</td>
-            <td class="p-2 border border-gray-300 text-center font-bold">${row.count || '-'}</td>
-            <td class="p-2 border border-gray-300 text-center text-gray-500">${row.note || '-'}</td>
+            <td class="p-2 border font-bold text-salma dark:text-salma-gold">${row.category || '-'}</td>
+            <td class="p-2 border font-medium">${row.item || '-'}</td>
+            <td class="p-2 border text-center">${row.mustalam}</td>
+            <td class="p-2 border text-center">${row.jadid}</td>
+            <td class="p-2 border text-center">${row.musallam}</td>
+            <td class="p-2 border text-center font-bold text-salma dark:text-salma-gold">${row.count}</td>
+            <td class="p-2 border text-gray-500">${row.note}</td>
           `;
           tbody.appendChild(tr);
         });
@@ -435,32 +290,40 @@
       document.getElementById('reportModal').classList.remove('hidden');
     }
 
-    function closeModal() {
+    function closeReportModal() {
       document.getElementById('reportModal').classList.add('hidden');
     }
 
-    // --- 100% Accurate Arabic PDF Export using html2pdf ---
-    function downloadPDF() {
-      const element = document.getElementById('pdfContent');
-      const branchName = currentReportForPdf ? currentReportForPdf.branchName : 'سلمى';
-      const dateStr = currentReportForPdf ? currentReportForPdf.date : 'تقرير';
+    // Bulk Delete Selected Reports
+    async function deleteSelectedReports() {
+      if (selectedReportIds.size === 0) {
+        alert('يرجى تحديد تقرير واحد على الأقل للحذف!');
+        return;
+      }
 
-      const opt = {
-        margin:       [0.3, 0.3, 0.3, 0.3],
-        filename:     `تقرير_جرد_${branchName}_${dateStr}.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true },
-        jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
-      };
+      if (!confirm(`هل أنت تأكد من إزالة (${selectedReportIds.size}) تقارير بشكل نهائي من قاعدة البيانات؟`)) {
+        return;
+      }
 
-      html2pdf().set(opt).from(element).save();
+      try {
+        const batch = db.batch();
+        selectedReportIds.forEach(id => {
+          const docRef = db.collection("reports").doc(id);
+          batch.delete(docRef);
+        });
+
+        await batch.commit();
+        alert('تم حذف التقارير المحددة بنجاح!');
+        selectedReportIds.clear();
+        updateSelectedCount();
+      } catch (err) {
+        console.error(err);
+        alert('حدث خطأ أثناء عملية الحذف السحابي!');
+      }
     }
 
-    // Start initialization on window load
-    window.onload = () => {
-      initTheme();
-      listenToReports();
-    };
+    // Init
+    loadReports();
   </script>
 </body>
 </html>
